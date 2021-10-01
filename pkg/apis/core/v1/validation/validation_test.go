@@ -417,29 +417,6 @@ func TestCheckPortConflicts(t *testing.T) {
 			fldPath:     field.NewPath("spec", "containers"),
 		},
 		{
-			name: "HostPort is already allocated",
-			containers: []v1.Container{
-				{
-					Ports: []v1.ContainerPort{
-						{
-							HostPort: 8080,
-							Protocol: v1.ProtocolUDP,
-						},
-					},
-				},
-				{
-					Ports: []v1.ContainerPort{
-						{
-							HostPort: 8081,
-							Protocol: v1.ProtocolUDP,
-						},
-					},
-				},
-			},
-			accumulator: &sets.String{"8080/UDP": sets.Empty{}},
-			fldPath:     field.NewPath("spec", "containers"),
-		},
-		{
 			name: "Host port name is duplicated",
 			containers: []v1.Container{
 				{
