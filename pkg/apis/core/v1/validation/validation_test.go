@@ -301,7 +301,7 @@ func TestValidatePodLogOptions(t *testing.T) {
 	}
 }
 
-func TestAccumulateUniqueHostPorts(t *testing.T) {
+func TestCheckPortConflicts(t *testing.T) {
 	successCase := []struct {
 		name        string
 		containers  []v1.Container
@@ -354,10 +354,35 @@ func TestAccumulateUniqueHostPorts(t *testing.T) {
 			accumulator: &sets.String{},
 			fldPath:     field.NewPath("spec", "containers"),
 		},
+		{
+			name: "Host port names are not duplicate",
+			containers: []v1.Container{
+				{
+					Ports: []v1.ContainerPort{
+						{
+							HostPort: 8080,
+							Protocol: v1.ProtocolUDP,
+							Name: "https",
+						},
+					},
+				},
+				{
+					Ports: []v1.ContainerPort{
+						{
+							HostPort: 8081,
+							Protocol: v1.ProtocolUDP,
+							Name: "http",
+						},
+					},
+				},
+			},
+			accumulator: &sets.String{},
+			fldPath:     field.NewPath("spec", "containers"),
+		},
 	}
 	for _, tc := range successCase {
 		t.Run(tc.name, func(t *testing.T) {
-			if errs := AccumulateUniqueHostPorts(tc.containers, tc.accumulator, tc.fldPath); len(errs) != 0 {
+			if errs := checkPortConflicts(tc.containers, tc.fldPath); len(errs) != 0 {
 				t.Errorf("unexpected error: %v", errs)
 			}
 		})
@@ -414,10 +439,35 @@ func TestAccumulateUniqueHostPorts(t *testing.T) {
 			accumulator: &sets.String{"8080/UDP": sets.Empty{}},
 			fldPath:     field.NewPath("spec", "containers"),
 		},
+		{
+			name: "Host port name is duplicated",
+			containers: []v1.Container{
+				{
+					Ports: []v1.ContainerPort{
+						{
+							HostPort: 8080,
+							Protocol: v1.ProtocolUDP,
+							Name: "https",
+						},
+					},
+				},
+				{
+					Ports: []v1.ContainerPort{
+						{
+							HostPort: 8081,
+							Protocol: v1.ProtocolUDP,
+							Name: "https",
+						},
+					},
+				},
+			},
+			accumulator: &sets.String{},
+			fldPath:     field.NewPath("spec", "containers"),
+		},
 	}
 	for _, tc := range errorCase {
 		t.Run(tc.name, func(t *testing.T) {
-			if errs := AccumulateUniqueHostPorts(tc.containers, tc.accumulator, tc.fldPath); len(errs) == 0 {
+			if errs := checkPortConflicts(tc.containers, tc.fldPath); len(errs) == 0 {
 				t.Errorf("expected error, but get nil")
 			}
 		})
